@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16
+    container_name: hotel_bookings_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app_admin
+      POSTGRES_PASSWORD: app_password
+      POSTGRES_DB: hotel_bookings
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # postgres's docker-entrypoint-initdb.d only scans top-level files
+      # (not subdirectories), and runs them in lexical order - hence the
+      # explicit numeric prefixes below to control migration order.
+      - ./db/migrations/001_create_tables.sql:/docker-entrypoint-initdb.d/001_create_tables.sql:ro
+      - ./db/migrations/002_add_indexes.sql:/docker-entrypoint-initdb.d/002_add_indexes.sql:ro
+      - ./db/seed/seed.sql:/docker-entrypoint-initdb.d/003_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_admin -d hotel_bookings"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
